@@ -8,10 +8,10 @@ import (
 	"time"
 )
 
-func TestSizePrefix(t *testing.T) {
+func TestSizeMeta(t *testing.T) {
 	data := make([]byte, 100) // 100 bytes of data
 
-	prefix, err := sizePrefix(data)
+	meta, err := sizeMeta(data)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -19,67 +19,67 @@ func TestSizePrefix(t *testing.T) {
 	expected := make([]byte, 4)
 	binary.LittleEndian.PutUint32(expected, 100)
 
-	if !bytes.Equal(prefix[:], expected) {
-		t.Errorf("Size prefix mismatch. Got %v, expected %v", prefix, expected)
+	if !bytes.Equal(meta[:], expected) {
+		t.Errorf("Size meta mismatch. Got %v, expected %v", meta, expected)
 	}
 }
 
-func TestSizePrefix_ExceedsMax(t *testing.T) {
+func TestSizeMeta_ExceedsMax(t *testing.T) {
 	data := make([]byte, maxDataBytes+1) // Exceeds max data bytes
 
-	_, err := sizePrefix(data)
+	_, err := sizeMeta(data)
 	if err == nil {
 		t.Fatal("Expected error, but got none")
 	}
 }
 
-func TestChecksumPrefix(t *testing.T) {
+func TestChecksumMeta(t *testing.T) {
 	data := []byte("test data")
-	prefix := checksumPrefix(data)
+	meta := checksumMeta(data)
 
 	expected := make([]byte, 4)
 	sum := crc32.ChecksumIEEE(data)
 	binary.LittleEndian.PutUint32(expected, sum)
 
-	if !bytes.Equal(prefix[:], expected) {
-		t.Errorf("Checksum prefix mismatch. Got %v, expected %v", prefix, expected)
+	if !bytes.Equal(meta[:], expected) {
+		t.Errorf("Checksum meta mismatch. Got %v, expected %v", meta, expected)
 	}
 }
 
-func TestTimestampPrefix(t *testing.T) {
+func TestTimestampMeta(t *testing.T) {
 	before := uint64(time.Now().Unix())
-	prefix := timestampPrefix()
+	meta := timestampMeta()
 	after := uint64(time.Now().Unix())
 
-	timestamp := binary.LittleEndian.Uint64(prefix[:])
+	timestamp := binary.LittleEndian.Uint64(meta[:])
 
 	if timestamp < before || timestamp > after {
 		t.Errorf("Timestamp out of expected range. Got %v, expected between %v and %v", timestamp, before, after)
 	}
 }
 
-func TestGobPrefix(t *testing.T) {
+func TestGobMeta(t *testing.T) {
 	data := []byte("test data")
 
-	prefix, err := gobPrefix(data)
+	meta, err := gobPrefix(data)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	sizePrefix, err := sizePrefix(data)
+	sizeMeta, err := sizeMeta(data)
 	if err != nil {
-		t.Fatalf("Unexpected error calculating size prefix: %v", err)
+		t.Fatalf("Unexpected error calculating size meta: %v", err)
 	}
-	checksumPrefix := checksumPrefix(data)
-	timestampPrefix := timestampPrefix()
+	checksumMeta := checksumMeta(data)
+	timestampMeta := timestampMeta()
 
-	if !bytes.Equal(prefix[sizeStart:sizeEnd], sizePrefix[:]) {
-		t.Errorf("Size prefix mismatch in GobPrefix. Got %v, expected %v", prefix[sizeStart:sizeEnd], sizePrefix[:])
+	if !bytes.Equal(meta[sizeStart:sizeEnd], sizeMeta[:]) {
+		t.Errorf("Size meta mismatch in GobPrefix. Got %v, expected %v", meta[sizeStart:sizeEnd], sizeMeta[:])
 	}
-	if !bytes.Equal(prefix[checksumStart:checksumEnd], checksumPrefix[:]) {
-		t.Errorf("Checksum prefix mismatch in GobPrefix. Got %v, expected %v", prefix[checksumStart:checksumEnd], checksumPrefix[:])
+	if !bytes.Equal(meta[checksumStart:checksumEnd], checksumMeta[:]) {
+		t.Errorf("Checksum meta mismatch in GobPrefix. Got %v, expected %v", meta[checksumStart:checksumEnd], checksumMeta[:])
 	}
-	if !bytes.Equal(prefix[timestampStart:timestampEnd], timestampPrefix[:]) {
-		t.Errorf("Timestamp prefix mismatch in GobPrefix. Got %v, expected %v", prefix[timestampStart:timestampEnd], timestampPrefix[:])
+	if !bytes.Equal(meta[timestampStart:timestampEnd], timestampMeta[:]) {
+		t.Errorf("Timestamp meta mismatch in GobPrefix. Got %v, expected %v", meta[timestampStart:timestampEnd], timestampMeta[:])
 	}
 }
